@@ -6,10 +6,10 @@ import random
 import pandas as pd
 
 conn = mysql.connector.connect(
-    host="your-rds-endpoint",
-    user="your-username",
-    password="your-password",
-    database="your-database",
+    host="onlinequizdb.c7w2cu4oaweu.ap-south-1.rds.amazonaws.com",
+    user="admin",
+    password="9999101694",
+    database="onlinequizdb",
     port=3306
 )
 cursor = conn.cursor()
@@ -229,4 +229,5 @@ if st.session_state.questions:
                 st.rerun()
         else:
             st.error("Please select exactly one option before proceeding.")
+
 
