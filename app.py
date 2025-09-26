@@ -1,21 +1,18 @@
 import streamlit as st
 import requests
 import html
-import mysql.connector
 import random
 import pandas as pd
+import sqlite3
 
-conn = mysql.connector.connect(
-    host="onlinequizdb.c7w2cu4oaweu.ap-south-1.rds.amazonaws.com",
-    user="admin",
-    password="9999101694",
-    database="onlinequizdb",
-    port=3306
-)
+# Connect to SQLite Database
+conn = sqlite3.connect("quiz.db")
 cursor = conn.cursor()
 
+# Configure Streamlit page
 st.set_page_config(page_title="Quiz App", layout="centered")
 
+# Initialize session state
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 if 'user_id' not in st.session_state:
@@ -33,10 +30,11 @@ if 'topic' not in st.session_state:
 if 'answers' not in st.session_state:
     st.session_state.answers = {}
 
+# ---------------- LOGIN FUNCTION ----------------
 def login(username, password):
     cur = conn.cursor()
     cur.execute(
-        "SELECT id, username FROM users WHERE username=%s AND password=%s",
+        "SELECT id, username FROM users WHERE username = ? AND password = ?",
         (username, password)
     )
     user = cur.fetchone()
@@ -47,15 +45,17 @@ def login(username, password):
         return True
     return False
 
+# ---------------- SIGNUP FUNCTION ----------------
 def signup(username, password):
     try:
         cur = conn.cursor()
-        cur.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, password))
+        cur.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
         conn.commit()
         st.success("User registered successfully! Please login.")
-    except mysql.connector.IntegrityError:
-        st.error("Username already exists.")
+    except sqlite3.IntegrityError:
+        st.error("Username already exists. Please choose another one.")
 
+# ---------------- FETCH QUESTIONS FROM API ----------------
 def fetch_questions_from_api(level, topic, num_qs):
     topic_mapping = {
         "General Knowledge": 9,
@@ -83,6 +83,7 @@ def fetch_questions_from_api(level, topic, num_qs):
         })
     return questions
 
+# ---------------- LOGIN / SIGNUP PAGE ----------------
 if not st.session_state.logged_in:
     st.title("Welcome to Online Quiz")
     st.markdown("<p style='text-align: center;'>Please sign in to continue or create a new account.</p>", unsafe_allow_html=True)
@@ -115,6 +116,7 @@ if not st.session_state.logged_in:
                 signup(new_username, new_password)
     st.stop()
 
+# ---------------- QUIZ PREFERENCES ----------------
 if st.session_state.logged_in and not st.session_state.questions:
     st.title("Select Quiz Preferences")
     st.session_state.level = st.selectbox("Select Level", ["easy", "medium", "hard"])
@@ -128,6 +130,7 @@ if st.session_state.logged_in and not st.session_state.questions:
         st.session_state.answers = {}
         st.rerun()
 
+# ---------------- QUIZ LOGIC ----------------
 if st.session_state.questions:
     
     if len(st.session_state.questions) == 0 or st.session_state.current_q >= len(st.session_state.questions):
@@ -162,6 +165,7 @@ if st.session_state.questions:
                 st.session_state.score += 1
             st.session_state.current_q += 1
 
+            # When quiz is complete
             if st.session_state.current_q >= len(st.session_state.questions):
                 total_questions = len(st.session_state.questions)
                 score = st.session_state.score
@@ -200,6 +204,7 @@ if st.session_state.questions:
                     })
                     st.markdown("---")
 
+                # Allow download of quiz report
                 df_results = pd.DataFrame(results_data)
                 csv = df_results.to_csv(index=False).encode('utf-8')
                 st.download_button(
@@ -209,13 +214,15 @@ if st.session_state.questions:
                     mime="text/csv",
                 )
 
+                # Save results in SQLite database
                 cur = conn.cursor()
                 cur.execute(
-                    "INSERT INTO results (user_id, level, topic, score, total_questions) VALUES (%s,%s,%s,%s,%s)",
+                    "INSERT INTO results (user_id, level, topic, score, total_questions) VALUES (?, ?, ?, ?, ?)",
                     (st.session_state.user_id, st.session_state.level, st.session_state.topic, score, total_questions)
                 )
                 conn.commit()
 
+                # Reset session
                 st.session_state.questions = []
                 st.session_state.current_q = 0
                 st.session_state.score = 0
@@ -229,5 +236,3 @@ if st.session_state.questions:
                 st.rerun()
         else:
             st.error("Please select exactly one option before proceeding.")
-
-
