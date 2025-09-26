@@ -5,18 +5,14 @@ import mysql.connector
 import random
 import pandas as pd
 
-def get_connection():
-    return mysql.connector.connect(
-        host="onlinequizdb.c7w2cu4oaweu.ap-south-1.rds.amazonaws.com",
-        user="admin",
-        password="9999101694",
-        database="onlinequizdb"
-    )
-try:
-    conn = get_connection()
-except mysql.connector.Error as e:
-    st.error(f"Error connecting to MySQL: {e}")
-    st.stop()
+conn = mysql.connector.connect(
+    host="your-rds-endpoint",
+    user="your-username",
+    password="your-password",
+    database="your-database",
+    port=3306
+)
+cursor = conn.cursor()
 
 st.set_page_config(page_title="Quiz App", layout="centered")
 
@@ -233,3 +229,4 @@ if st.session_state.questions:
                 st.rerun()
         else:
             st.error("Please select exactly one option before proceeding.")
+
