@@ -1,0 +1,4 @@
+Requirements:
+* streamlit
+* mysql-connector-python
+* pandas
