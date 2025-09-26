@@ -1,4 +1,3 @@
-Requirements:
-* streamlit
-* mysql-connector-python
-* pandas
+streamlit==1.28.2
+mysql-connector-python==8.1.0
+pandas==2.1.1
